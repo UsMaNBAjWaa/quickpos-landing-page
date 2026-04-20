@@ -1,0 +1,1 @@
+console.log("QuickPOS loaded successfully.");
