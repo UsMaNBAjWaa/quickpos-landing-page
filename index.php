@@ -26,6 +26,7 @@
     </header>
 
     <main>
+        <h1>QuickPOS</h1>
         <section id="hero" class="hero">
             <div class="container hero-content">
                 <div class="hero-text">

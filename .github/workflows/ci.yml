@@ -1,21 +1,28 @@
-  artifact-upload:
-    name: Upload Build Artifact
-    runs-on: ubuntu-latest
+name: QuickPOS CI/CD Pipeline
 
-    needs:
-      - code-quality
-      - automated-tests
-      - syntax-check
+on:
+  pull_request:
+    branches:
+      - develop
+  push:
+    branches:
+      - "feature/**"
+      - "bugfix/**"
+
+jobs:
+  syntax-check:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Upload Project Files
-        uses: actions/upload-artifact@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          name: quickpos-build-files
-          path: |
-            .
-            !vendor
-            !.git
+          php-version: latest
+
+      - name: Run PHP Syntax Check
+        run: |
+          find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l
