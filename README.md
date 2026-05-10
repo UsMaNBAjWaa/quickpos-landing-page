@@ -1,11 +1,5 @@
-## Parallel CI Pipeline
+# QuickPOS Landing Page
 
-The GitHub Actions workflow is optimized using parallel jobs.
+![QuickPOS CI/CD Pipeline](https://github.com/YOUR-USERNAME/YOUR-REPO-NAME/actions/workflows/ci.yml/badge.svg)
 
-Parallel jobs include:
-
-- Code Quality Check
-- Automated Tests
-- PHP Syntax Validation
-
-Artifact upload executes only after all jobs pass successfully.
+QuickPOS is a responsive POS landing page built with PHP.
