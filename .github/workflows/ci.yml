@@ -4,12 +4,94 @@ on:
   pull_request:
     branches:
       - develop
+      - main
+
   push:
     branches:
       - "feature/**"
       - "bugfix/**"
 
 jobs:
+  commit-validation:
+    name: Validate Jira Commit ID
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          echo "Validating commit messages..."
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}"
+            git log --no-merges --format=%s origin/${{ github.base_ref }}..HEAD > commits.txt
+          else
+            git log --no-merges --format=%s -n 10 > commits.txt
+          fi
+
+          cat commits.txt
+
+          while read message; do
+            if [ -z "$message" ]; then
+              continue
+            fi
+
+            echo "Checking commit: $message"
+
+            if ! echo "$message" | grep -Eq '^\[(SCRUM|POS)-[0-9]+\]'; then
+              echo "Invalid commit message: $message"
+              echo "Commit message must start with Jira ID."
+              echo "Example: [SCRUM-43] Add contact form validation tests"
+              exit 1
+            fi
+          done < commits.txt
+
+          echo "All commit messages are valid."
+
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: latest
+          tools: composer
+
+      - name: Install Dependencies
+        run: composer install --no-progress --prefer-dist --no-interaction
+
+      - name: Run PHP CodeSniffer
+        run: vendor/bin/phpcs
+
+  automated-tests:
+    name: Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: latest
+          tools: composer
+
+      - name: Install Dependencies
+        run: composer install --no-progress --prefer-dist --no-interaction
+
+      - name: Run PHPUnit Tests
+        run: vendor/bin/phpunit tests
+
   syntax-check:
     name: PHP Syntax Check
     runs-on: ubuntu-latest
@@ -26,3 +108,27 @@ jobs:
       - name: Run PHP Syntax Check
         run: |
           find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l
+
+  artifact-upload:
+    name: Upload Build Artifact
+    runs-on: ubuntu-latest
+
+    needs:
+      - commit-validation
+      - code-quality
+      - automated-tests
+      - syntax-check
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Upload Project Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickpos-build-files
+          path: |
+            .
+            !vendor
+            !.git
+            !composer.phar
